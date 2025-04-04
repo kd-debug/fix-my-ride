@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -77,24 +76,32 @@ export function MechanicApprovalList() {
   };
 
   const handleReject = (id: string) => {
-    toast({
-      title: "Confirm Rejection",
-      description: "Are you sure you want to reject this mechanic application?",
-      action: {
-        label: "Yes, Reject",
-        onClick: () => {
-          setRequests(prevRequests => 
-            prevRequests.map(req => 
-              req.id === id ? { ...req, status: "rejected" } : req
-            )
-          );
-          toast.error(`Mechanic ${id} has been rejected`);
-        },
-      },
-      cancel: {
-        label: "Cancel",
-      },
-    });
+    toast.custom((t) => (
+      <div className="bg-white p-4 rounded-lg shadow-lg">
+        <p className="font-medium">Confirm Rejection</p>
+        <p className="text-sm text-gray-500">Are you sure you want to reject this mechanic application?</p>
+        <div className="flex justify-end gap-2 mt-3">
+          <Button variant="outline" size="sm" onClick={() => toast.dismiss(t)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={() => {
+              setRequests(prevRequests => 
+                prevRequests.map(req => 
+                  req.id === id ? { ...req, status: "rejected" } : req
+                )
+              );
+              toast.error(`Mechanic ${id} has been rejected`);
+              toast.dismiss(t);
+            }}
+          >
+            Yes, Reject
+          </Button>
+        </div>
+      </div>
+    ));
   };
 
   const handleViewDetails = (mechanic: MechanicRequest) => {

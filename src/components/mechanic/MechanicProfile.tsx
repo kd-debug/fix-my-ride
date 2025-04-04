@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bell, MapPin, Star, Tool, Wrench } from "lucide-react";
+import { Bell, MapPin, Star, Wrench } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function MechanicProfile() {
@@ -64,7 +64,7 @@ export function MechanicProfile() {
               Engine Repair
             </Badge>
             <Badge variant="outline" className="bg-blue-50 text-blue-700">
-              <Tool className="h-3 w-3 mr-1" />
+              <Wrench className="h-3 w-3 mr-1" />
               Electrical Systems
             </Badge>
             <Badge variant="outline" className="bg-blue-50 text-blue-700">

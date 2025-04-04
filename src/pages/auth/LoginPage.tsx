@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -21,6 +22,15 @@ const LoginPage = () => {
     setIsSubmitting(true);
     
     try {
+      // Check for admin credentials first
+      if (email === "dkhushali11@gmail.com" && password === "fixmyride@123") {
+        // Direct admin login without going through the normal authentication
+        toast.success("Welcome Admin!");
+        navigate('/admin-dashboard');
+        return;
+      }
+      
+      // Regular user authentication flow
       const user = await login(email, password);
       if (user) {
         switch (user.role) {

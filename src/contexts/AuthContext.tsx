@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 
@@ -16,6 +17,8 @@ const SAMPLE_USERS: User[] = [
   { id: '2', name: 'Mike Mechanic', email: 'mechanic@example.com', role: 'mechanic', approved: true },
   { id: '3', name: 'Admin User', email: 'admin@example.com', role: 'admin' },
   { id: '4', name: 'Pending Mechanic', email: 'pending@example.com', role: 'mechanic', approved: false },
+  // Adding the hardcoded admin to sample users
+  { id: '5', name: 'Admin', email: 'dkhushali11@gmail.com', role: 'admin' },
 ];
 
 interface AuthContextType {

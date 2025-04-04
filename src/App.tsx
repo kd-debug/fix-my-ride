@@ -7,7 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Pages
 import LandingPage from "./pages/home/LandingPage";
@@ -22,13 +23,44 @@ import NotFound from "./pages/NotFound";
 // Create a client
 const queryClient = new QueryClient();
 
-const App = () => {
+// AppContent component that has access to auth context
+const AppContent = () => {
+  const { currentUser } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      setUserRole(currentUser.role);
+    } else {
+      setUserRole(null);
+    }
+  }, [currentUser]);
 
   const handleLogout = () => {
     setUserRole(null);
   };
 
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar userRole={userRole} onLogout={handleLogout} />
+      <main className="flex-grow">
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/mechanic-pending" element={<MechanicPendingPage />} />
+          <Route path="/user-dashboard" element={<UserDashboard />} />
+          <Route path="/mechanic-dashboard" element={<MechanicDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -36,22 +68,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <div className="flex flex-col min-h-screen">
-              <Navbar userRole={userRole} onLogout={handleLogout} />
-              <main className="flex-grow">
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route path="/mechanic-pending" element={<MechanicPendingPage />} />
-                  <Route path="/user-dashboard" element={<UserDashboard />} />
-                  <Route path="/mechanic-dashboard" element={<MechanicDashboard />} />
-                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
+            <AppContent />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

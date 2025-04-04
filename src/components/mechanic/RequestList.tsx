@@ -4,25 +4,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Car, Clock, MapPin, Check, X, ArrowRight } from "lucide-react";
-
-interface ServiceRequest {
-  id: string;
-  customerName: string;
-  vehicleInfo: string;
-  issue: string;
-  location: string;
-  distance: string;
-  status: "pending" | "active" | "completed" | "canceled";
-  createdAt: string;
-  completedAt?: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { ServiceRequest, updateServiceRequestStatus } from "@/services/serviceRequestService";
 
 interface RequestListProps {
   requests: ServiceRequest[];
   type: "pending" | "active" | "completed";
+  onRequestUpdated?: () => void;
 }
 
-export function RequestList({ requests, type }: RequestListProps) {
+export function RequestList({ requests, type, onRequestUpdated }: RequestListProps) {
+  const { currentUser } = useAuth();
+
   const formatRequestTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -34,7 +27,14 @@ export function RequestList({ requests, type }: RequestListProps) {
   };
 
   const handleAcceptRequest = (requestId: string) => {
-    toast.success(`Request ${requestId} accepted`);
+    if (!currentUser) return;
+    
+    const updatedRequest = updateServiceRequestStatus(requestId, "in-progress", currentUser.id);
+    
+    if (updatedRequest) {
+      toast.success(`Request ${requestId} accepted`);
+      if (onRequestUpdated) onRequestUpdated();
+    }
   };
 
   const handleRejectRequest = (requestId: string) => {
@@ -42,7 +42,11 @@ export function RequestList({ requests, type }: RequestListProps) {
       action: {
         label: "Yes, Reject",
         onClick: () => {
-          toast.error(`Request ${requestId} rejected`);
+          const updatedRequest = updateServiceRequestStatus(requestId, "canceled");
+          if (updatedRequest) {
+            toast.error(`Request ${requestId} rejected`);
+            if (onRequestUpdated) onRequestUpdated();
+          }
         },
       },
       cancel: {
@@ -53,7 +57,12 @@ export function RequestList({ requests, type }: RequestListProps) {
   };
 
   const handleMarkComplete = (requestId: string) => {
-    toast.success(`Request ${requestId} marked as complete`);
+    const updatedRequest = updateServiceRequestStatus(requestId, "completed");
+    
+    if (updatedRequest) {
+      toast.success(`Request ${requestId} marked as complete`);
+      if (onRequestUpdated) onRequestUpdated();
+    }
   };
 
   const handleViewDetails = (requestId: string) => {
@@ -89,12 +98,12 @@ export function RequestList({ requests, type }: RequestListProps) {
             <Badge 
               className={
                 request.status === "pending" ? "bg-amber-500" : 
-                request.status === "active" ? "bg-blue-500" : 
+                request.status === "in-progress" ? "bg-blue-500" : 
                 "bg-green-500"
               }
             >
               {request.status === "pending" ? "Pending" : 
-               request.status === "active" ? "In Progress" : 
+               request.status === "in-progress" ? "In Progress" : 
                "Completed"}
             </Badge>
           </div>
@@ -104,7 +113,7 @@ export function RequestList({ requests, type }: RequestListProps) {
               <Car className="h-5 w-5 text-gray-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium">Vehicle Information</p>
-                <p className="text-sm text-gray-600">{request.vehicleInfo}</p>
+                <p className="text-sm text-gray-600">{request.vehicleType} - {request.vehicleModel}</p>
                 <p className="text-sm text-gray-600">Issue: {request.issue}</p>
               </div>
             </div>
@@ -114,7 +123,9 @@ export function RequestList({ requests, type }: RequestListProps) {
               <div>
                 <p className="text-sm font-medium">Location</p>
                 <p className="text-sm text-gray-600">{request.location}</p>
-                <p className="text-sm text-gray-600">Distance: {request.distance}</p>
+                {request.additionalDetails && (
+                  <p className="text-sm text-gray-600 mt-2 italic">"{request.additionalDetails}"</p>
+                )}
               </div>
             </div>
           </div>

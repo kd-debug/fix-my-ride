@@ -10,13 +10,15 @@ import {
   Wrench,
   ShieldCheck
 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface NavbarProps {
   userRole: string | null;
   onLogout: () => void;
+  userName?: string | null;
 }
 
-export function Navbar({ userRole, onLogout }: NavbarProps) {
+export function Navbar({ userRole, onLogout, userName }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -45,6 +47,12 @@ export function Navbar({ userRole, onLogout }: NavbarProps) {
     navigate('/');
   };
 
+  // Generate user initials for avatar
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
   return (
     <nav className="bg-brand-blue text-white p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
@@ -60,14 +68,24 @@ export function Navbar({ userRole, onLogout }: NavbarProps) {
                 {roleIcon}
                 Dashboard
               </Link>
-              <Button 
-                variant="ghost" 
-                onClick={handleLogout}
-                className="flex items-center hover:text-brand-orange hover:bg-transparent transition-colors"
-              >
-                <LogOut className="h-5 w-5 mr-2" />
-                Logout
-              </Button>
+              <div className="flex items-center gap-2">
+                {userName && (
+                  <div className="flex items-center">
+                    <Avatar className="h-8 w-8 bg-brand-orange text-white">
+                      <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                    </Avatar>
+                    <span className="ml-2">{userName}</span>
+                  </div>
+                )}
+                <Button 
+                  variant="ghost" 
+                  onClick={handleLogout}
+                  className="flex items-center hover:text-brand-orange hover:bg-transparent transition-colors"
+                >
+                  <LogOut className="h-5 w-5 mr-2" />
+                  Logout
+                </Button>
+              </div>
             </>
           ) : (
             <>
@@ -109,6 +127,14 @@ export function Navbar({ userRole, onLogout }: NavbarProps) {
                   {roleIcon}
                   Dashboard
                 </Link>
+                {userName && (
+                  <div className="flex items-center px-4 py-2">
+                    <Avatar className="h-8 w-8 bg-brand-orange text-white">
+                      <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                    </Avatar>
+                    <span className="ml-2">{userName}</span>
+                  </div>
+                )}
                 <Button 
                   variant="ghost" 
                   onClick={handleLogout}

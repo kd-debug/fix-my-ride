@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
 import { Loader2, MapPin } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { createServiceRequest } from "@/services/serviceRequestService";
 
 interface UserRequestFormProps {
   onRequestSubmit: () => void;
 }
 
 export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     vehicleType: "",
     vehicleModel: "",
@@ -46,14 +48,26 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentUser) {
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Service request submitted successfully");
-      setIsSubmitting(false);
-      onRequestSubmit();
-    }, 2000);
+    // Create service request with real data
+    createServiceRequest({
+      userId: currentUser.id,
+      customerName: currentUser.name,
+      vehicleType: formData.vehicleType,
+      vehicleModel: formData.vehicleModel,
+      issue: formData.issue,
+      location: formData.location,
+      additionalDetails: formData.additionalDetails
+    });
+    
+    setIsSubmitting(false);
+    onRequestSubmit();
   };
 
   return (
@@ -111,12 +125,12 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
                 <SelectValue placeholder="Select the issue" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="flat-tire">Flat Tire</SelectItem>
-                <SelectItem value="battery">Dead Battery</SelectItem>
-                <SelectItem value="engine">Engine Trouble</SelectItem>
-                <SelectItem value="fuel">Out of Fuel</SelectItem>
-                <SelectItem value="locked-out">Locked Out</SelectItem>
-                <SelectItem value="other">Other Issue</SelectItem>
+                <SelectItem value="Flat Tire">Flat Tire</SelectItem>
+                <SelectItem value="Dead Battery">Dead Battery</SelectItem>
+                <SelectItem value="Engine Trouble">Engine Trouble</SelectItem>
+                <SelectItem value="Out of Fuel">Out of Fuel</SelectItem>
+                <SelectItem value="Locked Out">Locked Out</SelectItem>
+                <SelectItem value="Other Issue">Other Issue</SelectItem>
               </SelectContent>
             </Select>
           </div>

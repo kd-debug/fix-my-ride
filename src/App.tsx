@@ -42,7 +42,11 @@ const AppContent = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar userRole={userRole} onLogout={handleLogout} />
+      <Navbar 
+        userRole={userRole} 
+        onLogout={handleLogout} 
+        userName={currentUser?.name} 
+      />
       <main className="flex-grow">
         <Routes>
           <Route path="/" element={<LandingPage />} />

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +8,36 @@ import { RequestList } from "@/components/mechanic/RequestList";
 import { MechanicProfile } from "@/components/mechanic/MechanicProfile";
 import { MechanicStats } from "@/components/mechanic/MechanicStats";
 import { CalendarClock, CheckCircle2, Clock, ListTodo, User } from "lucide-react";
+import { 
+  getPendingServiceRequests, 
+  getMechanicActiveRequests, 
+  getMechanicCompletedRequests,
+  ServiceRequest
+} from "@/services/serviceRequestService";
 
 const MechanicDashboard = () => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+  const [pendingRequests, setPendingRequests] = useState<ServiceRequest[]>([]);
+  const [activeRequests, setActiveRequests] = useState<ServiceRequest[]>([]);
+  const [completedRequests, setCompletedRequests] = useState<ServiceRequest[]>([]);
+  
+  const loadRequests = () => {
+    if (!currentUser) return;
+    
+    // Load all types of requests
+    setPendingRequests(getPendingServiceRequests());
+    
+    if (currentUser.id) {
+      setActiveRequests(getMechanicActiveRequests(currentUser.id));
+      setCompletedRequests(getMechanicCompletedRequests(currentUser.id));
+    }
+  };
+  
+  // Load requests initially and whenever currentUser changes
+  useEffect(() => {
+    loadRequests();
+  }, [currentUser]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -46,7 +72,11 @@ const MechanicDashboard = () => {
         <TabsContent value="overview">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <MechanicStats />
+              <MechanicStats 
+                pendingCount={pendingRequests.length} 
+                activeCount={activeRequests.length} 
+                completedCount={completedRequests.length} 
+              />
               
               <div className="mt-6">
                 <Card>
@@ -58,29 +88,9 @@ const MechanicDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <RequestList 
-                      requests={[
-                        {
-                          id: "SR12345",
-                          customerName: "John Smith",
-                          vehicleInfo: "Toyota Camry",
-                          issue: "Flat tire",
-                          location: "123 Main St, City",
-                          distance: "1.5 miles",
-                          status: "pending",
-                          createdAt: new Date(Date.now() - 1200000).toISOString(),
-                        },
-                        {
-                          id: "SR12346",
-                          customerName: "Sarah Johnson",
-                          vehicleInfo: "Honda Civic",
-                          issue: "Dead battery",
-                          location: "456 Oak Ave, City",
-                          distance: "2.3 miles",
-                          status: "pending",
-                          createdAt: new Date(Date.now() - 2400000).toISOString(),
-                        }
-                      ]} 
+                      requests={pendingRequests.slice(0, 2)} 
                       type="pending"
+                      onRequestUpdated={loadRequests}
                     />
                   </CardContent>
                 </Card>
@@ -103,39 +113,9 @@ const MechanicDashboard = () => {
             </CardHeader>
             <CardContent>
               <RequestList 
-                requests={[
-                  {
-                    id: "SR12345",
-                    customerName: "John Smith",
-                    vehicleInfo: "Toyota Camry",
-                    issue: "Flat tire",
-                    location: "123 Main St, City",
-                    distance: "1.5 miles",
-                    status: "pending",
-                    createdAt: new Date(Date.now() - 1200000).toISOString(),
-                  },
-                  {
-                    id: "SR12346",
-                    customerName: "Sarah Johnson",
-                    vehicleInfo: "Honda Civic",
-                    issue: "Dead battery",
-                    location: "456 Oak Ave, City",
-                    distance: "2.3 miles",
-                    status: "pending",
-                    createdAt: new Date(Date.now() - 2400000).toISOString(),
-                  },
-                  {
-                    id: "SR12347",
-                    customerName: "Michael Brown",
-                    vehicleInfo: "Ford F-150",
-                    issue: "Engine trouble",
-                    location: "789 Pine St, City",
-                    distance: "3.7 miles",
-                    status: "pending",
-                    createdAt: new Date(Date.now() - 3600000).toISOString(),
-                  }
-                ]} 
+                requests={pendingRequests} 
                 type="pending"
+                onRequestUpdated={loadRequests}
               />
             </CardContent>
           </Card>
@@ -151,19 +131,9 @@ const MechanicDashboard = () => {
             </CardHeader>
             <CardContent>
               <RequestList 
-                requests={[
-                  {
-                    id: "SR12348",
-                    customerName: "Emily Wilson",
-                    vehicleInfo: "Nissan Altima",
-                    issue: "Locked out",
-                    location: "321 Elm St, City",
-                    distance: "1.2 miles",
-                    status: "active",
-                    createdAt: new Date(Date.now() - 1800000).toISOString(),
-                  }
-                ]} 
+                requests={activeRequests} 
                 type="active"
+                onRequestUpdated={loadRequests}
               />
             </CardContent>
           </Card>
@@ -179,31 +149,9 @@ const MechanicDashboard = () => {
             </CardHeader>
             <CardContent>
               <RequestList 
-                requests={[
-                  {
-                    id: "SR12340",
-                    customerName: "Robert Davis",
-                    vehicleInfo: "Chevrolet Malibu",
-                    issue: "Battery replacement",
-                    location: "567 Maple Ave, City",
-                    distance: "2.8 miles",
-                    status: "completed",
-                    createdAt: new Date(Date.now() - 86400000).toISOString(),
-                    completedAt: new Date(Date.now() - 82800000).toISOString(),
-                  },
-                  {
-                    id: "SR12339",
-                    customerName: "Jessica Lee",
-                    vehicleInfo: "BMW 3 Series",
-                    issue: "Flat tire",
-                    location: "890 Cedar St, City",
-                    distance: "3.4 miles",
-                    status: "completed",
-                    createdAt: new Date(Date.now() - 172800000).toISOString(),
-                    completedAt: new Date(Date.now() - 169200000).toISOString(),
-                  }
-                ]} 
+                requests={completedRequests} 
                 type="completed"
+                onRequestUpdated={loadRequests}
               />
             </CardContent>
           </Card>

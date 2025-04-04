@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 
@@ -11,13 +10,21 @@ export interface User {
   approved?: boolean;
 }
 
+export interface MechanicApplication {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  experience: string;
+  appliedAt: string;
+  status: string;
+  certification: string;
+}
+
 // Sample users for demo
 const SAMPLE_USERS: User[] = [
   { id: '1', name: 'John User', email: 'user@example.com', role: 'user' },
-  { id: '2', name: 'Mike Mechanic', email: 'mechanic@example.com', role: 'mechanic', approved: true },
-  { id: '3', name: 'Admin User', email: 'admin@example.com', role: 'admin' },
-  { id: '4', name: 'Pending Mechanic', email: 'pending@example.com', role: 'mechanic', approved: false },
-  // Adding the hardcoded admin to sample users
   { id: '5', name: 'Admin', email: 'dkhushali11@gmail.com', role: 'admin' },
 ];
 
@@ -27,6 +34,9 @@ interface AuthContextType {
   register: (userData: Partial<User>, password: string) => Promise<User | null>;
   logout: () => void;
   loading: boolean;
+  mechanicApplications: MechanicApplication[];
+  addMechanicApplication: (application: MechanicApplication) => void;
+  updateMechanicApplication: (id: string, status: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -46,13 +56,20 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [mechanicApplications, setMechanicApplications] = useState<MechanicApplication[]>([]);
 
-  // Check for saved user on component mount
+  // Check for saved user and applications on component mount
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
     }
+    
+    const savedApplications = localStorage.getItem('mechanicApplications');
+    if (savedApplications) {
+      setMechanicApplications(JSON.parse(savedApplications));
+    }
+    
     setLoading(false);
   }, []);
 
@@ -115,12 +132,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         approved: userData.role === 'mechanic' ? false : undefined,
       };
       
-      // If mechanic, don't log them in yet
-      if (newUser.role === 'mechanic') {
-        toast.success("Registration successful! Your account is pending approval.");
-        return newUser;
-      }
-      
       // Otherwise, log them in
       setCurrentUser(newUser);
       localStorage.setItem('currentUser', JSON.stringify(newUser));
@@ -132,6 +143,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return null;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Add mechanic application
+  const addMechanicApplication = (application: MechanicApplication) => {
+    const updatedApplications = [...mechanicApplications, application];
+    setMechanicApplications(updatedApplications);
+    localStorage.setItem('mechanicApplications', JSON.stringify(updatedApplications));
+  };
+
+  // Update mechanic application status
+  const updateMechanicApplication = (id: string, status: string) => {
+    const updatedApplications = mechanicApplications.map(app => 
+      app.id === id ? { ...app, status } : app
+    );
+    
+    setMechanicApplications(updatedApplications);
+    localStorage.setItem('mechanicApplications', JSON.stringify(updatedApplications));
+    
+    // If approved, add as a new user
+    if (status === "approved") {
+      const application = mechanicApplications.find(app => app.id === id);
+      if (application) {
+        const newMechanic: User = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: application.name,
+          email: application.email,
+          role: 'mechanic',
+          approved: true
+        };
+        SAMPLE_USERS.push(newMechanic);
+      }
     }
   };
 
@@ -148,6 +191,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     register,
     logout,
     loading,
+    mechanicApplications,
+    addMechanicApplication,
+    updateMechanicApplication
   };
 
   return (

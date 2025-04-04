@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,59 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Check, X, FileText, Phone, Mail, MapPin, Calendar, Eye, Download } from "lucide-react";
-
-// Sample mechanic approval requests
-const mechanicRequests = [
-  {
-    id: "M001",
-    name: "John Mechanic",
-    email: "john@example.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Mechanic St, City",
-    experience: "5 years of experience in engine repair and electrical systems",
-    appliedAt: "2023-04-01T12:30:00Z",
-    status: "pending",
-    certification: "certification.pdf",
-  },
-  {
-    id: "M002",
-    name: "Sarah Smith",
-    email: "sarah@example.com",
-    phone: "+1 (555) 987-6543",
-    address: "456 Repair Ave, City",
-    experience: "8 years specializing in foreign cars and transmission repair",
-    appliedAt: "2023-04-02T10:15:00Z",
-    status: "pending",
-    certification: "certification.pdf",
-  },
-  {
-    id: "M003",
-    name: "Mike Johnson",
-    email: "mike@example.com",
-    phone: "+1 (555) 456-7890",
-    address: "789 Service St, City",
-    experience: "3 years of experience with motorcycle and car repairs",
-    appliedAt: "2023-04-03T14:45:00Z",
-    status: "pending",
-    certification: "certification.pdf",
-  },
-];
-
-interface MechanicRequest {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  experience: string;
-  appliedAt: string;
-  status: string;
-  certification: string;
-}
+import { useAuth, MechanicApplication } from "@/contexts/AuthContext";
 
 export function MechanicApprovalList() {
-  const [requests, setRequests] = useState<MechanicRequest[]>(mechanicRequests);
-  const [selectedMechanic, setSelectedMechanic] = useState<MechanicRequest | null>(null);
+  const { mechanicApplications, updateMechanicApplication } = useAuth();
+  const [selectedMechanic, setSelectedMechanic] = useState<MechanicApplication | null>(null);
   const [filterTab, setFilterTab] = useState("all");
 
   const formatDate = (dateString: string) => {
@@ -67,11 +20,7 @@ export function MechanicApprovalList() {
   };
 
   const handleApprove = (id: string) => {
-    setRequests(prevRequests => 
-      prevRequests.map(req => 
-        req.id === id ? { ...req, status: "approved" } : req
-      )
-    );
+    updateMechanicApplication(id, "approved");
     toast.success(`Mechanic ${id} has been approved`);
   };
 
@@ -88,11 +37,7 @@ export function MechanicApprovalList() {
             variant="destructive" 
             size="sm" 
             onClick={() => {
-              setRequests(prevRequests => 
-                prevRequests.map(req => 
-                  req.id === id ? { ...req, status: "rejected" } : req
-                )
-              );
+              updateMechanicApplication(id, "rejected");
               toast.error(`Mechanic ${id} has been rejected`);
               toast.dismiss(t);
             }}
@@ -104,20 +49,20 @@ export function MechanicApprovalList() {
     ));
   };
 
-  const handleViewDetails = (mechanic: MechanicRequest) => {
+  const handleViewDetails = (mechanic: MechanicApplication) => {
     setSelectedMechanic(mechanic);
   };
 
   const filteredRequests = () => {
     switch(filterTab) {
       case "pending":
-        return requests.filter(req => req.status === "pending");
+        return mechanicApplications.filter(req => req.status === "pending");
       case "approved":
-        return requests.filter(req => req.status === "approved");
+        return mechanicApplications.filter(req => req.status === "approved");
       case "rejected":
-        return requests.filter(req => req.status === "rejected");
+        return mechanicApplications.filter(req => req.status === "rejected");
       default:
-        return requests;
+        return mechanicApplications;
     }
   };
 

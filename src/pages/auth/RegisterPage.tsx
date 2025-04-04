@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -26,7 +27,7 @@ const RegisterPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   
-  const { register } = useAuth();
+  const { register, addMechanicApplication } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -67,6 +68,28 @@ const RegisterPage = () => {
     setIsSubmitting(true);
     
     try {
+      if (formData.role === 'mechanic') {
+        // Send mechanic application to admin
+        const application = {
+          id: "M" + Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          experience: formData.experience,
+          appliedAt: new Date().toISOString(),
+          status: "pending",
+          certification: formData.certification ? formData.certification.name : "certification.pdf"
+        };
+        
+        // Add mechanic application
+        addMechanicApplication(application);
+        toast.success("Application submitted! Waiting for admin approval.");
+        navigate('/mechanic-pending');
+        return;
+      }
+      
+      // Regular user registration
       const user = await register({
         name: formData.name,
         email: formData.email,
@@ -74,11 +97,7 @@ const RegisterPage = () => {
       }, formData.password);
       
       if (user) {
-        if (user.role === 'mechanic') {
-          navigate('/mechanic-pending');
-        } else {
-          navigate('/user-dashboard');
-        }
+        navigate('/user-dashboard');
       }
     } finally {
       setIsSubmitting(false);

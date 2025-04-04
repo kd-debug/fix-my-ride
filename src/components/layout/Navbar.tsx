@@ -49,7 +49,7 @@ export function Navbar({ userRole, onLogout }: NavbarProps) {
     <nav className="bg-brand-blue text-white p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold flex items-center">
-          <span className="text-brand-orange">Auto</span>Aid Connect
+          <span className="text-brand-orange">Fix</span>MyRide
         </Link>
 
         {/* Desktop Menu */}

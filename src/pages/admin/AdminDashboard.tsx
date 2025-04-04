@@ -62,7 +62,7 @@ const AdminDashboard = () => {
         
         <TabsContent value="mechanic-approvals">
           <Card>
-            <CardHeader>
+            <CardHeader>  
               <CardTitle>Mechanic Approval Requests</CardTitle>
               <CardDescription>
                 Manage new mechanic applications and approve qualified professionals

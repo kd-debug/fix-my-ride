@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +8,8 @@ import { ServiceRequestStatus } from "@/components/user/ServiceRequestStatus";
 import { MechanicList } from "@/components/user/MechanicList";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ClipboardList, MapPin, Star, UserCheck } from "lucide-react";
+import { getUserServiceRequests } from "@/services/serviceRequestService";
 
-// Sample data
 const activeRequest = {
   id: "SR12345",
   status: "in-progress",
@@ -31,7 +30,21 @@ const activeRequest = {
 const UserDashboard = () => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [hasActiveRequest, setHasActiveRequest] = useState(true);
+  const [hasActiveRequest, setHasActiveRequest] = useState(false);
+  const [activeRequest, setActiveRequest] = useState(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      const userRequests = getUserServiceRequests(currentUser.id);
+      const activeRequests = userRequests.filter(req =>
+        req.status === "pending" || req.status === "in-progress"
+      );
+      setHasActiveRequest(activeRequests.length > 0);
+      if (activeRequests.length > 0) {
+        setActiveRequest(activeRequests[0]);
+      }
+    }
+  }, [currentUser]);
 
   const handleNewRequest = () => {
     setHasActiveRequest(true);
@@ -43,7 +56,7 @@ const UserDashboard = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <div>
-          <Button 
+          <Button
             onClick={() => setActiveTab("new-request")}
             className="bg-brand-orange hover:bg-brand-orange/90"
             disabled={hasActiveRequest}
@@ -52,7 +65,7 @@ const UserDashboard = () => {
           </Button>
         </div>
       </div>
-      
+
       {hasActiveRequest && (
         <Alert className="mb-6 border-amber-200 bg-amber-50">
           <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -62,7 +75,7 @@ const UserDashboard = () => {
           </AlertDescription>
         </Alert>
       )}
-      
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="overview" className="flex items-center gap-1">
@@ -82,7 +95,7 @@ const UserDashboard = () => {
             <span>Mechanics</span>
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
@@ -103,7 +116,7 @@ const UserDashboard = () => {
                     <p className="text-2xl font-bold text-green-600">2</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-6">
                   <h3 className="font-medium mb-3">Recent Activity</h3>
                   <div className="space-y-3">
@@ -129,7 +142,7 @@ const UserDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
@@ -150,7 +163,7 @@ const UserDashboard = () => {
                   <AlertTriangle className="mr-2 h-4 w-4" />
                   Report an Issue
                 </Button>
-                
+
                 <div className="bg-blue-50 p-4 rounded-lg mt-4">
                   <h3 className="font-medium text-blue-800 mb-2">
                     Need Immediate Help?
@@ -166,15 +179,15 @@ const UserDashboard = () => {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="new-request">
           <UserRequestForm onRequestSubmit={handleNewRequest} />
         </TabsContent>
-        
+
         <TabsContent value="active-request">
           <ServiceRequestStatus request={activeRequest} />
         </TabsContent>
-        
+
         <TabsContent value="mechanics">
           <MechanicList />
         </TabsContent>

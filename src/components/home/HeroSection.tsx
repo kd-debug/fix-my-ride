@@ -27,11 +27,7 @@ export function HeroSection() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/about">
-                <Button variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto text-lg">
-                  Learn More
-                </Button>
-              </Link>
+              
             </div>
             
             <div className="flex flex-wrap gap-8 pt-6">
@@ -51,14 +47,7 @@ export function HeroSection() {
                   Happy<br />Customers
                 </p>
               </div>
-              <div className="flex items-center">
-                <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center mr-3">
-                  <span className="text-2xl font-bold text-brand-orange">30m</span>
-                </div>
-                <p className="text-sm">
-                  Average<br />Response Time
-                </p>
-              </div>
+             
             </div>
           </div>
           

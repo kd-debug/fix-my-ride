@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // Create axios instance
@@ -28,57 +27,79 @@ api.interceptors.request.use(
   }
 );
 
+interface UserData {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+}
+
+interface ServiceRequestData {
+  vehicleType: string;
+  vehicleModel: string;
+  issue: string;
+  location: string;
+  additionalDetails?: string;
+}
+
+interface MechanicApplicationData {
+  experience: string;
+  specialization: string;
+  licenseNumber: string;
+  documents: string[];
+}
+
 // Auth services
 export const authApi = {
-  login: (email: string, password: string) => 
+  login: (email: string, password: string) =>
     api.post('/users/login', { email, password }),
-  
-  register: (userData: any) => 
+
+  register: (userData: UserData) =>
     api.post('/users', userData),
-  
-  getUserProfile: () => 
+
+  getUserProfile: () =>
     api.get('/users/profile'),
-  
-  updateUserProfile: (userData: any) => 
+
+  updateUserProfile: (userData: Partial<UserData>) =>
     api.put('/users/profile', userData),
 };
 
 // Service request services
 export const serviceApi = {
-  createServiceRequest: (requestData: any) => 
+  createServiceRequest: (requestData: ServiceRequestData) =>
     api.post('/services', requestData),
-  
-  getUserRequests: () => 
+
+  getUserRequests: () =>
     api.get('/services/user'),
-  
-  getPendingRequests: () => 
+
+  getPendingRequests: () =>
     api.get('/services/pending'),
-  
-  getMechanicActiveRequests: () => 
+
+  getMechanicActiveRequests: () =>
     api.get('/services/mechanic/active'),
-  
-  getMechanicCompletedRequests: () => 
+
+  getMechanicCompletedRequests: () =>
     api.get('/services/mechanic/completed'),
-  
-  updateRequestStatus: (id: string, status: string) => 
+
+  updateRequestStatus: (id: string, status: string) =>
     api.put(`/services/${id}/status`, { status }),
-  
-  getAllRequests: () => 
+
+  getAllRequests: () =>
     api.get('/services'),
 };
 
 // Mechanic services
 export const mechanicApi = {
-  applyAsMechanic: (applicationData: any) => 
+  applyAsMechanic: (applicationData: MechanicApplicationData) =>
     api.post('/mechanics/apply', applicationData),
-  
-  getMechanicApplications: () => 
+
+  getMechanicApplications: () =>
     api.get('/mechanics/applications'),
-  
-  updateApplicationStatus: (id: string, status: string) => 
+
+  updateApplicationStatus: (id: string, status: string) =>
     api.put(`/mechanics/applications/${id}`, { status }),
-  
-  getApprovedMechanics: () => 
+
+  getApprovedMechanics: () =>
     api.get('/mechanics'),
 };
 

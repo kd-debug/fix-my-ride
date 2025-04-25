@@ -9,14 +9,14 @@ export function Testimonials() {
       name: "Sarah Johnson",
       avatar: "/placeholder.svg",
       role: "Toyota Owner",
-      content: "I had a flat tire on the highway and was stuck for hours until I found AutoAid Connect. Within 20 minutes, a mechanic arrived and got me back on the road. Incredible service!",
+      content: "I had a flat tire on the highway and was stuck for hours until I found FixMyRide. Within 20 minutes, a mechanic arrived and got me back on the road. Incredible service!",
       rating: 5,
     },
     {
       name: "Michael Brown",
       avatar: "/placeholder.svg",
       role: "Honda Driver",
-      content: "My car wouldn't start in a parking lot late at night. I requested help through AutoAid and a mechanic arrived quickly. He jump-started my battery and even checked other systems. Great experience!",
+      content: "My car wouldn't start in a parking lot late at night. I requested help through this site and a mechanic arrived quickly. He jump-started my battery and even checked other systems. Great experience!",
       rating: 5,
     },
     {

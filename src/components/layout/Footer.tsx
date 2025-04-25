@@ -9,7 +9,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h2 className="text-xl font-bold mb-4 flex items-center">
-              <span className="text-brand-orange">Auto</span>Aid Connect
+              <span className="text-brand-orange">FixMyRide</span> 
             </h2>
             <p className="text-gray-300">
               Providing reliable roadside assistance services to get you back on the road quickly and safely.
@@ -42,23 +42,20 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center">
                 <Phone className="h-5 w-5 mr-2 text-brand-orange" />
-                <span>+1 (555) 123-4567</span>
+                <span>+91 9876543210</span>
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 mr-2 text-brand-orange" />
-                <span>support@autoaidconnect.com</span>
+                <span>support@fixmyride.com</span>
               </li>
-              <li className="flex items-center">
-                <MapPin className="h-5 w-5 mr-2 text-brand-orange" />
-                <span>123 Roadside Ave, Mechanic City</span>
-              </li>
+              
             </ul>
           </div>
         </div>
         
         <div className="border-t border-blue-700 mt-8 pt-4">
           <p className="text-center text-gray-300">
-            &copy; {new Date().getFullYear()} AutoAid Connect. All rights reserved.
+            &copy; {new Date().getFullYear()} FixMyRide Connect. All rights reserved.
           </p>
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createServiceRequest } from "@/services/serviceRequestService";
+import { toast } from "sonner";
 
 interface UserRequestFormProps {
   onRequestSubmit: () => void;
@@ -23,7 +23,7 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
     location: "",
     additionalDetails: "",
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
 
@@ -38,23 +38,46 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
 
   const handleUseCurrentLocation = () => {
     setUseCurrentLocation(true);
-    
-    // Simulate getting location
-    setTimeout(() => {
-      setFormData(prev => ({ ...prev, location: "123 Current Location St, City" }));
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          // Use reverse geocoding to get address
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+            .then(response => response.json())
+            .then(data => {
+              const address = data.display_name;
+              setFormData(prev => ({ ...prev, location: address }));
+              setUseCurrentLocation(false);
+            })
+            .catch(error => {
+              console.error('Error getting address:', error);
+              setFormData(prev => ({ ...prev, location: `${latitude}, ${longitude}` }));
+              setUseCurrentLocation(false);
+            });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast.error('Could not get your location. Please enter it manually.');
+          setUseCurrentLocation(false);
+        }
+      );
+    } else {
+      toast.error('Geolocation is not supported by your browser');
       setUseCurrentLocation(false);
-    }, 1500);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!currentUser) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     // Create service request with real data
     createServiceRequest({
       userId: currentUser.id,
@@ -65,7 +88,7 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
       location: formData.location,
       additionalDetails: formData.additionalDetails
     });
-    
+
     setIsSubmitting(false);
     onRequestSubmit();
   };
@@ -83,8 +106,8 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="vehicleType">Vehicle Type</Label>
-              <Select 
-                value={formData.vehicleType} 
+              <Select
+                value={formData.vehicleType}
                 onValueChange={(value) => handleSelectChange("vehicleType", value)}
                 required
               >
@@ -100,7 +123,7 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="vehicleModel">Vehicle Make & Model</Label>
               <Input
@@ -113,11 +136,11 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="issue">What's the issue?</Label>
-            <Select 
-              value={formData.issue} 
+            <Select
+              value={formData.issue}
               onValueChange={(value) => handleSelectChange("issue", value)}
               required
             >
@@ -134,14 +157,14 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="location">Your Location</Label>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
                 className="flex items-center text-xs"
                 onClick={handleUseCurrentLocation}
                 disabled={useCurrentLocation}
@@ -168,7 +191,7 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="additionalDetails">Additional Details (optional)</Label>
             <Textarea
@@ -182,9 +205,9 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
           </div>
         </CardContent>
         <CardFooter>
-          <Button 
-            type="submit" 
-            className="w-full bg-brand-orange hover:bg-brand-orange/90" 
+          <Button
+            type="submit"
+            className="w-full bg-brand-orange hover:bg-brand-orange/90"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

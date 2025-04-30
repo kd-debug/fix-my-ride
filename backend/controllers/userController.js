@@ -1,4 +1,3 @@
-
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
@@ -18,26 +17,32 @@ const loginUser = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    if (user && (await user.comparePassword(password))) {
-      // For mechanic, check if approved
-      if (user.role === 'mechanic' && !user.approved) {
-        return res.status(401).json({
-          message: 'Your account is pending approval by admin',
-        });
-      }
-
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        approved: user.approved,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // For mechanic, check if approved
+    if (user.role === 'mechanic' && !user.approved) {
+      return res.status(401).json({
+        message: 'Your account is pending approval by admin',
+      });
+    }
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      approved: user.approved,
+      token: generateToken(user._id),
+    });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: error.message });
   }
 };

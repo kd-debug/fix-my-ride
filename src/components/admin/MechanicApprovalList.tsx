@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,15 +12,39 @@ export function MechanicApprovalList() {
   const { mechanicApplications, updateMechanicApplication } = useAuth();
   const [selectedMechanic, setSelectedMechanic] = useState<MechanicApplication | null>(null);
   const [filterTab, setFilterTab] = useState("all");
+  const [applications, setApplications] = useState<MechanicApplication[]>(mechanicApplications);
+
+  // Update local state when mechanicApplications changes
+  useEffect(() => {
+    setApplications(mechanicApplications);
+  }, [mechanicApplications]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const handleApprove = (id: string) => {
-    updateMechanicApplication(id, "approved");
-    toast.success(`Mechanic ${id} has been approved`);
+  const handleApprove = async (id: string) => {
+    try {
+      await updateMechanicApplication(id, "approved");
+
+      // Update local state
+      setApplications(prevApps =>
+        prevApps.map(app =>
+          app.id === id ? { ...app, status: "approved" } : app
+        )
+      );
+
+      // Close dialog if open
+      if (selectedMechanic?.id === id) {
+        setSelectedMechanic(null);
+      }
+
+      toast.success("Mechanic application approved successfully");
+    } catch (error) {
+      console.error('Error approving mechanic:', error);
+      toast.error("Failed to approve mechanic application");
+    }
   };
 
   const handleReject = (id: string) => {
@@ -33,13 +56,31 @@ export function MechanicApprovalList() {
           <Button variant="outline" size="sm" onClick={() => toast.dismiss(t)}>
             Cancel
           </Button>
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={() => {
-              updateMechanicApplication(id, "rejected");
-              toast.error(`Mechanic ${id} has been rejected`);
-              toast.dismiss(t);
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={async () => {
+              try {
+                await updateMechanicApplication(id, "rejected");
+
+                // Update local state
+                setApplications(prevApps =>
+                  prevApps.map(app =>
+                    app.id === id ? { ...app, status: "rejected" } : app
+                  )
+                );
+
+                // Close dialog if open
+                if (selectedMechanic?.id === id) {
+                  setSelectedMechanic(null);
+                }
+
+                toast.success("Mechanic application rejected successfully");
+                toast.dismiss(t);
+              } catch (error) {
+                console.error('Error rejecting mechanic:', error);
+                toast.error("Failed to reject mechanic application");
+              }
             }}
           >
             Yes, Reject
@@ -54,15 +95,15 @@ export function MechanicApprovalList() {
   };
 
   const filteredRequests = () => {
-    switch(filterTab) {
+    switch (filterTab) {
       case "pending":
-        return mechanicApplications.filter(req => req.status === "pending");
+        return applications.filter(req => req.status === "pending");
       case "approved":
-        return mechanicApplications.filter(req => req.status === "approved");
+        return applications.filter(req => req.status === "approved");
       case "rejected":
-        return mechanicApplications.filter(req => req.status === "rejected");
+        return applications.filter(req => req.status === "rejected");
       default:
-        return mechanicApplications;
+        return applications;
     }
   };
 
@@ -76,7 +117,7 @@ export function MechanicApprovalList() {
           <TabsTrigger value="rejected">Rejected</TabsTrigger>
         </TabsList>
       </Tabs>
-      
+
       {filteredRequests().length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">No {filterTab === "all" ? "" : filterTab} mechanic requests found.</p>
@@ -98,20 +139,20 @@ export function MechanicApprovalList() {
                     </p>
                   </div>
                 </div>
-                
-                <Badge 
+
+                <Badge
                   className={
-                    request.status === "pending" ? "bg-amber-500" : 
-                    request.status === "approved" ? "bg-green-500" : 
-                    "bg-red-500"
+                    request.status === "pending" ? "bg-amber-500" :
+                      request.status === "approved" ? "bg-green-500" :
+                        "bg-red-500"
                   }
                 >
-                  {request.status === "pending" ? "Pending" : 
-                   request.status === "approved" ? "Approved" : 
-                   "Rejected"}
+                  {request.status === "pending" ? "Pending" :
+                    request.status === "approved" ? "Approved" :
+                      "Rejected"}
                 </Badge>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="flex items-start space-x-2">
                   <FileText className="h-5 w-5 text-gray-500 shrink-0 mt-0.5" />
@@ -120,7 +161,7 @@ export function MechanicApprovalList() {
                     <p className="text-sm text-gray-600 line-clamp-2">{request.experience}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start space-x-2">
                   <MapPin className="h-5 w-5 text-gray-500 shrink-0 mt-0.5" />
                   <div>
@@ -129,19 +170,19 @@ export function MechanicApprovalList() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex flex-wrap gap-2 mt-4">
                 {request.status === "pending" && (
                   <>
-                    <Button 
+                    <Button
                       onClick={() => handleApprove(request.id)}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <Check className="h-4 w-4 mr-1" />
                       Approve
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => handleReject(request.id)}
                       className="text-red-600 border-red-200 hover:bg-red-50"
                     >
@@ -150,11 +191,11 @@ export function MechanicApprovalList() {
                     </Button>
                   </>
                 )}
-                
+
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => handleViewDetails(request)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -168,7 +209,7 @@ export function MechanicApprovalList() {
                         Review the complete information for this mechanic
                       </DialogDescription>
                     </DialogHeader>
-                    
+
                     {selectedMechanic && (
                       <div className="space-y-4">
                         <div className="flex items-center space-x-4">
@@ -181,7 +222,7 @@ export function MechanicApprovalList() {
                             <p className="text-sm text-gray-500">ID: {selectedMechanic.id}</p>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-3">
                           <div className="flex items-start">
                             <Mail className="h-5 w-5 text-gray-500 mr-3 shrink-0" />
@@ -190,7 +231,7 @@ export function MechanicApprovalList() {
                               <p className="text-sm">{selectedMechanic.email}</p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-start">
                             <Phone className="h-5 w-5 text-gray-500 mr-3 shrink-0" />
                             <div>
@@ -198,7 +239,7 @@ export function MechanicApprovalList() {
                               <p className="text-sm">{selectedMechanic.phone}</p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-start">
                             <MapPin className="h-5 w-5 text-gray-500 mr-3 shrink-0" />
                             <div>
@@ -206,7 +247,7 @@ export function MechanicApprovalList() {
                               <p className="text-sm">{selectedMechanic.address}</p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-start">
                             <FileText className="h-5 w-5 text-gray-500 mr-3 shrink-0" />
                             <div>
@@ -214,7 +255,7 @@ export function MechanicApprovalList() {
                               <p className="text-sm">{selectedMechanic.experience}</p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-start">
                             <Calendar className="h-5 w-5 text-gray-500 mr-3 shrink-0" />
                             <div>
@@ -223,7 +264,7 @@ export function MechanicApprovalList() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="bg-blue-50 p-3 rounded-md">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
@@ -239,15 +280,15 @@ export function MechanicApprovalList() {
                         </div>
                       </div>
                     )}
-                    
+
                     <DialogFooter className="gap-2 sm:gap-0">
                       <DialogClose asChild>
                         <Button variant="outline">Close</Button>
                       </DialogClose>
-                      
+
                       {selectedMechanic && selectedMechanic.status === "pending" && (
                         <>
-                          <Button 
+                          <Button
                             className="bg-green-600 hover:bg-green-700"
                             onClick={() => {
                               handleApprove(selectedMechanic.id);
@@ -256,8 +297,8 @@ export function MechanicApprovalList() {
                             <Check className="h-4 w-4 mr-1" />
                             Approve
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="text-red-600 border-red-200 hover:bg-red-50"
                             onClick={() => {
                               handleReject(selectedMechanic.id);

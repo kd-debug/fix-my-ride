@@ -1,13 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
+import { authApi } from '@/services/api';
+import axios from 'axios';
+import { mechanicApi } from '@/services/api';
 
 // Define user types
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: 'user' | 'mechanic' | 'admin';
   approved?: boolean;
+  token?: string;
 }
 
 export interface MechanicApplication {
@@ -22,16 +26,30 @@ export interface MechanicApplication {
   certification: string;
 }
 
-// Sample users for demo
-const SAMPLE_USERS: User[] = [
-  { id: '1', name: 'John User', email: 'user@example.com', role: 'user' },
-  { id: '5', name: 'Admin', email: 'dkhushali11@gmail.com', role: 'admin' },
-];
+interface UserData {
+  name: string;
+  email: string;
+  password: string;
+  role?: 'user' | 'mechanic' | 'admin';
+}
+
+interface ApiResponse<T> {
+  data: T;
+  message?: string;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
 
 interface AuthContextType {
   currentUser: User | null;
   login: (email: string, password: string) => Promise<User | null>;
-  register: (userData: Partial<User>, password: string) => Promise<User | null>;
+  register: (userData: UserData) => Promise<User | null>;
   logout: () => void;
   loading: boolean;
   mechanicApplications: MechanicApplication[];
@@ -64,37 +82,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
     }
-    
+
     const savedApplications = localStorage.getItem('mechanicApplications');
     if (savedApplications) {
       setMechanicApplications(JSON.parse(savedApplications));
     }
-    
+
     setLoading(false);
   }, []);
 
   // Login function
   const login = async (email: string, password: string): Promise<User | null> => {
     setLoading(true);
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find user with matching email
-      const user = SAMPLE_USERS.find(u => u.email === email);
-      
+      const response = await authApi.login(email, password);
+      const user = response.data as User;
+
       if (!user) {
         toast.error("Invalid email or password");
         return null;
       }
-      
+
       // For mechanic, check if approved
       if (user.role === 'mechanic' && user.approved === false) {
         toast.error("Your account is pending approval by admin");
         return null;
       }
-      
+
       // Success
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
@@ -102,7 +117,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return user;
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("An error occurred during login");
+      const apiError = error as ApiError;
+      toast.error(apiError.response?.data?.message || "An error occurred during login");
       return null;
     } finally {
       setLoading(false);
@@ -110,36 +126,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   // Register function
-  const register = async (userData: Partial<User>, password: string): Promise<User | null> => {
+  const register = async (userData: UserData): Promise<User | null> => {
     setLoading(true);
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if email already exists
-      if (SAMPLE_USERS.some(u => u.email === userData.email)) {
-        toast.error("Email already in use");
+      const response = await authApi.register(userData);
+      const user = response.data as User;
+
+      if (!user) {
+        toast.error("Registration failed");
         return null;
       }
-      
-      // Create new user
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: userData.name || 'New User',
-        email: userData.email || '',
-        role: userData.role || 'user',
-        approved: userData.role === 'mechanic' ? false : undefined,
-      };
-      
-      // Otherwise, log them in
-      setCurrentUser(newUser);
-      localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+      // Success
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
       toast.success("Registration successful!");
-      return newUser;
+      return user;
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("An error occurred during registration");
+      const apiError = error as ApiError;
+      toast.error(apiError.response?.data?.message || "An error occurred during registration");
       return null;
     } finally {
       setLoading(false);
@@ -154,27 +161,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   // Update mechanic application status
-  const updateMechanicApplication = (id: string, status: string) => {
-    const updatedApplications = mechanicApplications.map(app => 
-      app.id === id ? { ...app, status } : app
-    );
-    
-    setMechanicApplications(updatedApplications);
-    localStorage.setItem('mechanicApplications', JSON.stringify(updatedApplications));
-    
-    // If approved, add as a new user
-    if (status === "approved") {
-      const application = mechanicApplications.find(app => app.id === id);
-      if (application) {
-        const newMechanic: User = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: application.name,
-          email: application.email,
-          role: 'mechanic',
-          approved: true
-        };
-        SAMPLE_USERS.push(newMechanic);
+  const updateMechanicApplication = async (id: string, status: string) => {
+    try {
+      // Update backend
+      const response = await mechanicApi.updateApplicationStatus(id, status);
+
+      if (!response.data) {
+        throw new Error('Failed to update application status');
       }
+
+      // Update local state
+      const updatedApplications = mechanicApplications.map(app =>
+        app.id === id ? { ...app, status } : app
+      );
+
+      setMechanicApplications(updatedApplications);
+      localStorage.setItem('mechanicApplications', JSON.stringify(updatedApplications));
+
+      // Fetch fresh data from backend
+      try {
+        const response = await mechanicApi.getMechanicApplications();
+        if (response.data) {
+          setMechanicApplications(response.data);
+          localStorage.setItem('mechanicApplications', JSON.stringify(response.data));
+        }
+      } catch (error) {
+        console.error('Error fetching updated applications:', error);
+      }
+
+    } catch (error) {
+      console.error('Error updating mechanic application:', error);
+      throw error; // Re-throw to handle in component
     }
   };
 

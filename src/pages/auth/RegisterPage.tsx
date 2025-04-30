@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { mechanicApi } from "@/services/api";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -23,17 +23,17 @@ const RegisterPage = () => {
     experience: "",
     certification: null as File | null,
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-  
+
   const { register, addMechanicApplication } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear password error when user types
     if (name === "password" || name === "confirmPassword") {
       setPasswordError("");
@@ -52,53 +52,69 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setPasswordError("Passwords do not match");
       return;
     }
-    
+
     // Validate password length
     if (formData.password.length < 6) {
       setPasswordError("Password must be at least 6 characters");
       return;
     }
-    
-    setIsSubmitting(true);
-    
-    try {
-      if (formData.role === 'mechanic') {
-        // Send mechanic application to admin
-        const application = {
-          id: "M" + Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          experience: formData.experience,
-          appliedAt: new Date().toISOString(),
-          status: "pending",
-          certification: formData.certification ? formData.certification.name : "certification.pdf"
-        };
-        
-        // Add mechanic application
-        addMechanicApplication(application);
-        toast.success("Application submitted! Waiting for admin approval.");
-        navigate('/mechanic-pending');
+
+    // Additional validation for mechanic
+    if (formData.role === 'mechanic') {
+      if (!formData.phone || !formData.address || !formData.experience) {
+        toast.error("Please fill in all required fields for mechanic registration");
         return;
       }
-      
-      // Regular user registration
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // First register the user
       const user = await register({
         name: formData.name,
         email: formData.email,
-        role: formData.role as 'user' | 'mechanic' | 'admin',
-      }, formData.password);
-      
-      if (user) {
+        password: formData.password,
+        role: formData.role as 'user' | 'mechanic' | 'admin'
+      });
+
+      if (!user) {
+        throw new Error("Registration failed");
+      }
+
+      if (formData.role === 'mechanic') {
+        // Submit mechanic application
+        try {
+          await mechanicApi.applyAsMechanic({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            experience: formData.experience,
+            certification: formData.certification ? formData.certification.name : "certification.pdf",
+            userId: user._id
+          });
+
+          toast.success("Application submitted! Waiting for admin approval.");
+          navigate('/mechanic-pending');
+        } catch (error) {
+          console.error("Error submitting mechanic application:", error);
+          toast.error("Failed to submit mechanic application. Please try again.");
+        }
+      } else {
+        // Regular user registration successful
+        toast.success("Registration successful!");
         navigate('/user-dashboard');
       }
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Registration failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -126,7 +142,7 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -139,7 +155,7 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -152,7 +168,7 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
@@ -168,11 +184,11 @@ const RegisterPage = () => {
                 <p className="text-red-500 text-sm mt-1">{passwordError}</p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label>I want to register as</Label>
-              <RadioGroup 
-                value={formData.role} 
+              <RadioGroup
+                value={formData.role}
                 onValueChange={handleRoleChange}
                 className="flex gap-4"
               >
@@ -186,7 +202,7 @@ const RegisterPage = () => {
                 </div>
               </RadioGroup>
             </div>
-            
+
             {formData.role === "mechanic" && (
               <>
                 <div className="space-y-2">
@@ -200,7 +216,7 @@ const RegisterPage = () => {
                     required={formData.role === "mechanic"}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="address">Business Address</Label>
                   <Input
@@ -212,7 +228,7 @@ const RegisterPage = () => {
                     required={formData.role === "mechanic"}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="experience">Experience (years and specialties)</Label>
                   <Textarea
@@ -224,7 +240,7 @@ const RegisterPage = () => {
                     required={formData.role === "mechanic"}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="certification">Upload Certification/License</Label>
                   <div className="flex items-center justify-center w-full">
@@ -236,11 +252,11 @@ const RegisterPage = () => {
                         </p>
                         <p className="text-xs text-gray-500">PDF, PNG, JPG (MAX. 10MB)</p>
                       </div>
-                      <Input 
-                        id="certification" 
+                      <Input
+                        id="certification"
                         name="certification"
-                        type="file" 
-                        className="hidden" 
+                        type="file"
+                        className="hidden"
                         onChange={handleFileChange}
                         required={formData.role === "mechanic"}
                       />
@@ -252,7 +268,7 @@ const RegisterPage = () => {
                     </p>
                   )}
                 </div>
-                
+
                 <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-md">
                   <p className="font-medium text-blue-700">Note for Mechanics:</p>
                   <p>Your account will need approval from our admin team before you can start accepting service requests. We'll review your information and notify you once approved.</p>
@@ -273,8 +289,8 @@ const RegisterPage = () => {
             </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 className="text-primary hover:text-primary/90 underline underline-offset-4"
               >
                 Sign in

@@ -31,6 +31,7 @@ interface UserData {
   name: string;
   email: string;
   password: string;
+  role?: 'user' | 'mechanic' | 'admin';
   phone?: string;
 }
 
@@ -43,10 +44,34 @@ interface ServiceRequestData {
 }
 
 interface MechanicApplicationData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
   experience: string;
-  specialization: string;
-  licenseNumber: string;
-  documents: string[];
+  certification: string;
+  userId?: string;
+}
+
+interface MechanicApplication {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  experience: string;
+  certification: string;
+  status: 'pending' | 'approved' | 'rejected';
+  appliedAt: string;
+}
+
+interface Mechanic {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'mechanic';
+  approved: boolean;
 }
 
 // Auth services
@@ -94,13 +119,13 @@ export const mechanicApi = {
     api.post('/mechanics/apply', applicationData),
 
   getMechanicApplications: () =>
-    api.get('/mechanics/applications'),
+    api.get<MechanicApplication[]>('/mechanics/applications'),
 
   updateApplicationStatus: (id: string, status: string) =>
-    api.put(`/mechanics/applications/${id}`, { status }),
+    api.put<MechanicApplication>(`/mechanics/applications/${id}`, { status }),
 
   getApprovedMechanics: () =>
-    api.get('/mechanics'),
+    api.get<Mechanic[]>('/mechanics'),
 };
 
 export default api;

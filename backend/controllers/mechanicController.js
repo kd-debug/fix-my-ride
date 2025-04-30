@@ -1,4 +1,3 @@
-
 const MechanicApplication = require('../models/MechanicApplication');
 const User = require('../models/User');
 
@@ -70,22 +69,67 @@ const updateApplicationStatus = async (req, res) => {
       return res.status(404).json({ message: 'Application not found' });
     }
 
+    // Update application status
     application.status = status;
     await application.save();
 
-    // If approved, update the user's approved status
+    // If approved, update the user's role and approved status
     if (status === 'approved') {
-      await User.findByIdAndUpdate(application.userId, { approved: true });
+      const user = await User.findByIdAndUpdate(
+        application.userId,
+        {
+          role: 'mechanic',
+          approved: true
+        },
+        { new: true }
+      );
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Return updated application with user info
+      return res.json({
+        ...application.toObject(),
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          approved: user.approved
+        }
+      });
     } else if (status === 'rejected') {
       // If rejected, revert user role to regular user
-      await User.findByIdAndUpdate(application.userId, {
-        role: 'user',
-        approved: true,
+      const user = await User.findByIdAndUpdate(
+        application.userId,
+        {
+          role: 'user',
+          approved: true
+        },
+        { new: true }
+      );
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Return updated application with user info
+      return res.json({
+        ...application.toObject(),
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          approved: user.approved
+        }
       });
     }
 
     res.json(application);
   } catch (error) {
+    console.error('Error updating application status:', error);
     res.status(500).json({ message: error.message });
   }
 };

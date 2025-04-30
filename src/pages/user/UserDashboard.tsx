@@ -8,48 +8,51 @@ import { ServiceRequestStatus } from "@/components/user/ServiceRequestStatus";
 import { MechanicList } from "@/components/user/MechanicList";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ClipboardList, MapPin, Star, UserCheck } from "lucide-react";
-import { getUserServiceRequests } from "@/services/serviceRequestService";
-
-const activeRequest = {
-  id: "SR12345",
-  status: "in-progress",
-  vehicle: "Toyota Camry",
-  issue: "Flat tire",
-  location: "123 Main St, City",
-  createdAt: new Date(Date.now() - 3600000).toISOString(),
-  mechanic: {
-    id: "M123",
-    name: "Mike Mechanic",
-    rating: 4.8,
-    phone: "+1 (555) 987-6543",
-    eta: "15 min",
-    location: "1.5 miles away",
-  }
-};
+import { getUserServiceRequests, ServiceRequest } from "@/services/serviceRequestService";
 
 const UserDashboard = () => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [hasActiveRequest, setHasActiveRequest] = useState(false);
-  const [activeRequest, setActiveRequest] = useState(null);
+  const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (currentUser) {
-      const userRequests = getUserServiceRequests(currentUser.id);
-      const activeRequests = userRequests.filter(req =>
-        req.status === "pending" || req.status === "in-progress"
-      );
-      setHasActiveRequest(activeRequests.length > 0);
-      if (activeRequests.length > 0) {
-        setActiveRequest(activeRequests[0]);
+    const fetchServiceRequests = async () => {
+      if (currentUser) {
+        try {
+          setIsLoading(true);
+          const requests = await getUserServiceRequests();
+          setServiceRequests(requests);
+
+          const activeRequests = requests.filter(req =>
+            req.status === "pending" || req.status === "in-progress"
+          );
+          setHasActiveRequest(activeRequests.length > 0);
+          if (activeRequests.length > 0) {
+            setActiveRequest(activeRequests[0]);
+          }
+        } catch (error) {
+          console.error('Error fetching service requests:', error);
+        } finally {
+          setIsLoading(false);
+        }
       }
-    }
+    };
+
+    fetchServiceRequests();
   }, [currentUser]);
 
   const handleNewRequest = () => {
     setHasActiveRequest(true);
     setActiveTab("active-request");
   };
+
+  const completedRequests = serviceRequests.filter(req => req.status === "completed").length;
+  const recentRequests = [...serviceRequests]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 2);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -66,12 +69,13 @@ const UserDashboard = () => {
         </div>
       </div>
 
-      {hasActiveRequest && (
+      {hasActiveRequest && activeRequest && (
         <Alert className="mb-6 border-amber-200 bg-amber-50">
           <AlertTriangle className="h-5 w-5 text-amber-600" />
           <AlertTitle className="text-amber-800">Active Service Request</AlertTitle>
           <AlertDescription className="text-amber-700">
-            You have an active service request with Mike Mechanic. Estimated arrival time: 15 minutes.
+            You have an active service request with {activeRequest.assignedMechanic?.name || 'a mechanic'}.
+            {activeRequest.assignedMechanic?.phone && ` Contact: ${activeRequest.assignedMechanic.phone}`}
           </AlertDescription>
         </Alert>
       )}
@@ -109,35 +113,39 @@ const UserDashboard = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-blue-50 p-4 rounded-lg text-center">
                     <p className="text-sm text-gray-500">Total Requests</p>
-                    <p className="text-2xl font-bold text-brand-blue">3</p>
+                    <p className="text-2xl font-bold text-brand-blue">{serviceRequests.length}</p>
                   </div>
                   <div className="bg-green-50 p-4 rounded-lg text-center">
                     <p className="text-sm text-gray-500">Completed</p>
-                    <p className="text-2xl font-bold text-green-600">2</p>
+                    <p className="text-2xl font-bold text-green-600">{completedRequests}</p>
                   </div>
                 </div>
 
                 <div className="mt-6">
                   <h3 className="font-medium mb-3">Recent Activity</h3>
                   <div className="space-y-3">
-                    <div className="p-3 border rounded-md flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Flat Tire Assistance</p>
-                        <p className="text-sm text-gray-500">Toyota Camry • 3 hours ago</p>
-                      </div>
-                      <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded text-xs font-medium">
-                        In Progress
-                      </span>
-                    </div>
-                    <div className="p-3 border rounded-md flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Battery Jump Start</p>
-                        <p className="text-sm text-gray-500">Honda Civic • 2 days ago</p>
-                      </div>
-                      <span className="text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-medium">
-                        Completed
-                      </span>
-                    </div>
+                    {isLoading ? (
+                      <div className="text-center py-4">Loading...</div>
+                    ) : recentRequests.length > 0 ? (
+                      recentRequests.map((request) => (
+                        <div key={request.id} className="p-3 border rounded-md flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{request.issue}</p>
+                            <p className="text-sm text-gray-500">
+                              {request.vehicleType} {request.vehicleModel} • {new Date(request.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <span className={`${request.status === 'completed' ? 'text-green-600 bg-green-50' :
+                            request.status === 'in-progress' ? 'text-amber-600 bg-amber-50' :
+                              'text-blue-600 bg-blue-50'
+                            } px-2 py-1 rounded text-xs font-medium`}>
+                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4">No recent activity</div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -185,7 +193,7 @@ const UserDashboard = () => {
         </TabsContent>
 
         <TabsContent value="active-request">
-          <ServiceRequestStatus request={activeRequest} />
+          {activeRequest && <ServiceRequestStatus request={activeRequest} />}
         </TabsContent>
 
         <TabsContent value="mechanics">

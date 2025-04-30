@@ -69,28 +69,40 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentUser) {
+      toast.error('Please log in to submit a service request');
+      return;
+    }
+
+    if (!formData.vehicleType || !formData.vehicleModel || !formData.issue || !formData.location) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
     setIsSubmitting(true);
 
-    // Create service request with real data
-    createServiceRequest({
-      userId: currentUser.id,
-      customerName: currentUser.name,
-      vehicleType: formData.vehicleType,
-      vehicleModel: formData.vehicleModel,
-      issue: formData.issue,
-      location: formData.location,
-      additionalDetails: formData.additionalDetails
-    });
+    try {
+      await createServiceRequest({
+        userId: currentUser._id,
+        customerName: currentUser.name,
+        vehicleType: formData.vehicleType,
+        vehicleModel: formData.vehicleModel,
+        issue: formData.issue,
+        location: formData.location,
+        additionalDetails: formData.additionalDetails
+      });
 
-    setIsSubmitting(false);
-    onRequestSubmit();
+      toast.success('Service request submitted successfully');
+      onRequestSubmit();
+    } catch (error) {
+      console.error('Error creating service request:', error);
+      toast.error('Failed to submit service request');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -98,125 +110,91 @@ export function UserRequestForm({ onRequestSubmit }: UserRequestFormProps) {
       <CardHeader>
         <CardTitle>Request Roadside Assistance</CardTitle>
         <CardDescription>
-          Fill out the form below to request assistance from a mechanic in your area
+          Fill in the details of your vehicle and the issue you're experiencing
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="vehicleType">Vehicle Type</Label>
               <Select
                 value={formData.vehicleType}
-                onValueChange={(value) => handleSelectChange("vehicleType", value)}
-                required
+                onValueChange={(value) => handleSelectChange('vehicleType', value)}
               >
-                <SelectTrigger id="vehicleType">
+                <SelectTrigger>
                   <SelectValue placeholder="Select vehicle type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="car">Car</SelectItem>
-                  <SelectItem value="suv">SUV</SelectItem>
-                  <SelectItem value="truck">Truck</SelectItem>
                   <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                  <SelectItem value="truck">Truck</SelectItem>
                   <SelectItem value="van">Van</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="vehicleModel">Vehicle Make & Model</Label>
+              <Label htmlFor="vehicleModel">Vehicle Model</Label>
               <Input
                 id="vehicleModel"
                 name="vehicleModel"
-                placeholder="Toyota Camry, Honda Civic, etc."
                 value={formData.vehicleModel}
                 onChange={handleChange}
-                required
+                placeholder="e.g., Toyota Camry 2020"
               />
             </div>
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="issue">What's the issue?</Label>
-            <Select
+            <Label htmlFor="issue">Issue Description</Label>
+            <Textarea
+              id="issue"
+              name="issue"
               value={formData.issue}
-              onValueChange={(value) => handleSelectChange("issue", value)}
-              required
-            >
-              <SelectTrigger id="issue">
-                <SelectValue placeholder="Select the issue" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Flat Tire">Flat Tire</SelectItem>
-                <SelectItem value="Dead Battery">Dead Battery</SelectItem>
-                <SelectItem value="Engine Trouble">Engine Trouble</SelectItem>
-                <SelectItem value="Out of Fuel">Out of Fuel</SelectItem>
-                <SelectItem value="Locked Out">Locked Out</SelectItem>
-                <SelectItem value="Other Issue">Other Issue</SelectItem>
-              </SelectContent>
-            </Select>
+              onChange={handleChange}
+              placeholder="Describe the issue you're experiencing"
+            />
           </div>
-
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="location">Your Location</Label>
+            <Label htmlFor="location">Location</Label>
+            <div className="flex space-x-2">
+              <Input
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="Enter your location"
+              />
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className="flex items-center text-xs"
                 onClick={handleUseCurrentLocation}
                 disabled={useCurrentLocation}
               >
-                {useCurrentLocation ? (
-                  <>
-                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                    Getting location...
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="mr-1 h-3 w-3" />
-                    Use current location
-                  </>
-                )}
+                <MapPin className="h-4 w-4 mr-2" />
+                Use Current Location
               </Button>
             </div>
-            <Input
-              id="location"
-              name="location"
-              placeholder="Street address, city, state"
-              value={formData.location}
-              onChange={handleChange}
-              required
-            />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="additionalDetails">Additional Details (optional)</Label>
+            <Label htmlFor="additionalDetails">Additional Details (Optional)</Label>
             <Textarea
               id="additionalDetails"
               name="additionalDetails"
-              placeholder="Provide any additional information that might help the mechanic"
               value={formData.additionalDetails}
               onChange={handleChange}
-              rows={3}
+              placeholder="Any additional information that might help the mechanic"
             />
           </div>
         </CardContent>
         <CardFooter>
-          <Button
-            type="submit"
-            className="w-full bg-brand-orange hover:bg-brand-orange/90"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting Request...
+                Submitting...
               </>
             ) : (
-              "Submit Request"
+              'Submit Request'
             )}
           </Button>
         </CardFooter>
